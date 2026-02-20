@@ -1,0 +1,233 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <iomanip>
+
+using namespace std;
+
+
+class Student {
+private:
+    string indexNumber;
+    string name;
+
+public:
+    Student(const string& idx = "", const string& nm = "") {
+        indexNumber = idx;
+        name = nm;
+    }
+
+    [[nodiscard]] string getIndexNumber() const { return indexNumber; }
+    [[nodiscard]] string getName() const { return name; }
+
+
+    void inputStudent() {
+        cout << "01240684D: ";
+        cin >> indexNumber;
+        cin.ignore();
+        cout << "ARMAH : ";
+        getline(cin, name);
+    }
+
+    void displayStudent() const {
+        cout << left << setw(15) << indexNumber << name << endl;
+    }
+
+    [[nodiscard]] string toFileFormat() const {
+        return indexNumber + "," + name;
+    }
+};
+
+
+vector<Student> students;
+
+
+void loadStudents() {
+    ifstream file("students.txt");
+    if (!file) return;
+
+    string line;
+    while (getline(file, line)) {
+        size_t comma = line.find(',');
+        if (comma != string::npos) {
+            string idx = line.substr(0, comma);
+            string nm = line.substr(comma + 1);
+            students.emplace_back(idx, nm);
+        }
+    }
+    file.close();
+}
+
+void saveStudents() {
+    ofstream file("students.txt");
+    for (const auto &s : students) {
+        file << s.toFileFormat() << endl;
+    }
+    file.close();
+}
+
+
+void registerStudent() {
+    Student s;
+    s.inputStudent();
+
+    // Prevent duplicate index
+    for (const auto &st : students) {
+        if (st.getIndexNumber() == s.getIndexNumber()) {
+            cout << "Student already exists!\n";
+            return;
+        }
+    }
+
+    students.push_back(s);
+    saveStudents();
+    cout << "Student Registered Successfully!\n";
+}
+
+void viewStudents() {
+    if (students.empty()) {
+        cout << "No students registered.\n";
+        return;
+    }
+
+    cout << "\nRegistered Students\n";
+    cout << "---\n";
+    for (const auto &s : students) {
+        s.displayStudent();
+    }
+}
+
+void searchStudent() {
+    string index;
+    cout << "Enter Index Number to search: ";
+    cin >> index;
+
+    for (const auto &s : students) {
+        if (s.getIndexNumber() == index) {
+            cout << "Student Found:\n";
+            s.displayStudent();
+            return;
+        }
+    }
+
+    cout << "Student not found.\n";
+}
+
+void createAttendanceSession() {
+    if (students.empty()) {
+        cout << "No students available. Register students first.\n";
+        return;
+    }
+
+    string courseCode , date, startTime;
+    int duration;
+    cout << "EEE227: ";
+    cin >> courseCode;
+    cout << "Enter Date (2000_11_06): ";
+    cin >> date;
+    cout << "9:00 AM: ";
+    cin >> startTime;
+    cout << "Enter Duration (1 hour): ";
+    cin >> duration;
+
+    string filename = "session_" + courseCode + "_" + date + ".txt";
+    ofstream file(filename);
+
+    file << "Course: " << courseCode << endl;
+    file << "Date: " << date << endl;
+    file << "Start Time: " << startTime << endl;
+    file << "Duration: " << duration << " mins\n\n";
+
+    int present = 0, absent = 0, late = 0;
+
+    cout << "\nMark Attendance (P=Present, A=Absent, L=Late)\n";
+
+    for (const auto &s : students) {
+        char status;
+        cout << s.getIndexNumber() << " " << s.getName() << ": ";
+        cin >> status;
+
+        status = toupper(status);
+
+        if (status == 'P') present++;
+        else if (status == 'A') absent++;
+        else if (status == 'L') late++;
+        else {
+            cout << "Invalid input. Marked as Absent.\n";
+            status = 'A';
+            absent++;
+        }
+
+        file << s.getIndexNumber() << " "
+             << s.getName() << " "
+             << status << endl;
+    }
+
+    file << "\nSummary\n";
+    file << "Present: " << present << endl;
+    file << "Absent: " << absent << endl;
+    file << "Late: " << late << endl;
+
+    file.close();
+
+    cout << "Attendance session saved successfully!\n";
+}
+
+void viewAttendanceReport() {
+    string filename;
+    cout << "Enter session filename to view (e.g session_EE201_2026_02_20.txt): ";
+    cin >> filename;
+
+    ifstream file(filename);
+
+    if (!file) {
+        cout << "File not found.\n";
+        return;
+    }
+
+    string line;
+    while (getline(file, line)) {
+        cout << line << endl;
+    }
+
+    file.close();
+}
+
+
+void menu() {
+    cout << "\n==== DIGITAL ATTENDANCE SYSTEM ====\n";
+    cout << "1. Register Student\n";
+    cout << "2. View Students\n";
+    cout << "3. Search Student\n";
+    cout << "4. Create Attendance Session\n";
+    cout << "5. View Attendance Report\n";
+    cout << "6. Exit\n";
+    cout << "Choose option: ";
+}
+
+
+int main()
+{
+    loadStudents();
+
+    int choice;
+
+    do {
+        menu();
+        cin >> choice;
+
+        switch (choice) {
+        case 1: registerStudent(); break;
+        case 2: viewStudents(); break;
+        case 3: searchStudent(); break;
+        case 4: createAttendanceSession(); break;
+        case 5: viewAttendanceReport(); break;
+        case 6: cout << "Exiting...\n"; break;
+        default: cout << "Invalid choice.\n";
+        }
+
+    } while (choice != 6);
+
+    return 0;
+}
